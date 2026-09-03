@@ -7,7 +7,7 @@ Queried `npm view <pkg> version` and official docs the same day. Do not guess AP
 | Tool | Pin / requirement | Source |
 |---|---|---|
 | Node.js | **>= 22.13.0** (Mastra official) | https://mastra.ai/integrations/frameworks/next-js |
-| TypeScript | **7.0.2** (npm latest that day; Next scaffold may pin a compatible range) | `npm view typescript version` |
+| TypeScript | **7.0.2** npm latest; **Next 16.3.4 scaffold pins `typescript@^5`** — we follow the Next scaffold | `npm view typescript version`; `create-next-app@16.3.4` |
 
 ## Application packages
 
@@ -68,5 +68,7 @@ June 2026: npm `@mastra` scope was briefly republished with a malicious dependen
 9. Webhook HMAC uses the **raw body** and header `X-Razorpay-Signature`. Parsing JSON first invalidates the signature.
 10. Grok 4.6 accepts image + text input and structured JSON output. Mastra model id: `xai/grok-4.6`. Env: `XAI_API_KEY`.
 11. Supabase Realtime requires `alter publication supabase_realtime add table …` plus RLS policies that allow the subscribing role to `SELECT`.
+12. `create-next-app@16.3.4` installs `typescript@^5` (not npm latest 7.0.2). Keep the scaffold pin.
+13. Without cloud keys, `docs/schema.sql` was compiled and seeded against PGlite (`@electric-sql/pglite`). `gen_random_uuid()` is core PG; `pgcrypto` is optional. RLS policies that name `anon`/`authenticated` no-op on vanilla Postgres.
 
 See also: [mastra.md](./mastra.md), [razorpay.md](./razorpay.md), [decisions.md](../knowledge/decisions.md).
