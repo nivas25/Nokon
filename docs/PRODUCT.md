@@ -40,7 +40,7 @@ Nokon replaces the son + the chaotic WhatsApp money dance **only for sellers who
 - Claim silent auto-debit with no Razorpay Checkout. The agent may **create** the charge only after gates. A human (or test Checkout) completes payment.
 - Marketplace homepage, ads, “trending”, logistics network, COD, returns engine, real WhatsApp Business API this weekend.
 - Clone Flipkart / Meesho / Razorpay RAY.
-- Rebuild Velvi GST packs.
+
 - Fake a `paid` flag in React state.
 
 RAY context: RAY is a **merchant ops assistant on WhatsApp** (summaries, refunds, payment links). We are one layer up: **product buying**, not account management.
