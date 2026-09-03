@@ -1,0 +1,58 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next
+.next/
+out/
+build/
+dist/
+
+# env & secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# mastra snapshots (local libSQL)
+mastra.db
+mastra.db-shm
+mastra.db-wal
+*.db
+*.db-journal
+
+# logs / debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+.turbo
+
+# tests / coverage
+coverage/
+.nyc_output/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# vercel
+.vercel
+
+# ngrok / tunnels (never commit URLs that might embed secrets)
+.ngrok.yml
+
+# uploads (local screenshot cache)
+uploads/
+public/uploads/
+
+# lockfile we keep: package-lock.json is committed once the app is scaffolded
