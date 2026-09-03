@@ -26,7 +26,7 @@ export async function createStandardPaymentLink(input: CreatePaymentLinkInput) {
   }
   const env = getServerEnv()
   const expireBy = Math.floor(Date.now() / 1000) + PAYMENT_LINK_TTL_SECONDS
-  const payload: Record<string, unknown> = {
+  const payload = {
     amount: input.amountPaise,
     currency: 'INR',
     accept_partial: false,
@@ -39,20 +39,19 @@ export async function createStandardPaymentLink(input: CreatePaymentLinkInput) {
       nokon_order_id: input.orderId,
       item_code: input.itemCode,
     },
+    ...(input.customerName ? { customer: { name: input.customerName } } : {}),
+    ...(env.RAZORPAY_CALLBACK_URL
+      ? { callback_url: env.RAZORPAY_CALLBACK_URL, callback_method: 'get' as const }
+      : {}),
   }
-  if (input.customerName) {
-    payload.customer = { name: input.customerName }
-  }
-  if (env.RAZORPAY_CALLBACK_URL) {
-    payload.callback_url = env.RAZORPAY_CALLBACK_URL
-    payload.callback_method = 'get'
-  }
-  const link = await getRazorpay().paymentLink.create(payload)
+  const created = await getRazorpay().paymentLink.create(
+    payload as Parameters<Razorpay['paymentLink']['create']>[0],
+  )
+  const link = created as unknown as { id: string; short_url: string; order_id?: string }
   return {
     id: String(link.id),
     shortUrl: String(link.short_url),
     orderId: link.order_id ? String(link.order_id) : null,
     expireBy,
-    raw: link,
   }
 }
