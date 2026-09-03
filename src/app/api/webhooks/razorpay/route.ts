@@ -6,6 +6,7 @@ import {
   type RazorpayWebhookEvent,
 } from '@/lib/razorpay/verify'
 import { mastra } from '@/mastra'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
 export const runtime = 'nodejs'
 
@@ -124,17 +125,35 @@ export async function POST(req: Request) {
     payload: { event: name, paymentId: paymentId ?? null },
   })
 
-  if (updated.mastra_run_id && paymentId) {
-    try {
-      const workflow = mastra.getWorkflow('orderFromScreenshot')
-      const run = await workflow.createRun({ runId: updated.mastra_run_id })
-      await run.resume({ resumeData: { paymentId } })
-    } catch (error) {
-      const id = error && typeof error === 'object' && 'id' in error ? String(error.id) : ''
-      if (id !== 'WORKFLOW_RESUME_ALREADY_CLAIMED') {
-        console.error('workflow resume after webhook failed', error)
+  if (paymentId) {
+    // Fire and forget agent confirmation loop
+    ;(async () => {
+      try {
+        const msgs = await store.listMessages(updated.id)
+        if (msgs.some((m) => m.sender === 'seller_agent' && m.body.includes('Payment of ₹'))) {
+          return // already sent final confirmation
+        }
+
+        const finalSellerMsg = `Payment of ₹${(order.catalog_price_paise / 100).toFixed(2)} received successfully! 🎉\n\nYour order is confirmed and will be shipped soon. Thank you for shopping with Nokon!`
+        
+        await store.appendMessage({
+          orderId: updated.id,
+          channel: 'main',
+          sender: 'seller_agent',
+          body: finalSellerMsg,
+        })
+
+        if (updated.buyer_id) {
+          const buyer = await store.getBuyer(updated.buyer_id)
+          if (buyer && buyer.name.startsWith('whatsapp:')) {
+            const phone = buyer.name.replace('whatsapp:', '')
+            await sendWhatsAppMessage(phone, finalSellerMsg)
+          }
+        }
+      } catch (error) {
+        console.error('WhatsApp confirmation loop failed', error)
       }
-    }
+    })()
   }
 
   return NextResponse.json({ ok: true, orderId: updated.id, status: updated.status })

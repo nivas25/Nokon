@@ -69,11 +69,15 @@ export type AuditRow = {
 export type NokonStore = {
   seedDemo(opts?: { resetStock?: boolean }): Promise<{ seller: SellerRow; item: ItemRow }>
   getSellerByHandle(handle: string): Promise<SellerRow | null>
+  getSellerById(id: string): Promise<SellerRow | null>
   getItem(sellerId: string, itemCode: string): Promise<ItemRow | null>
   getItemById(id: string): Promise<ItemRow | null>
-  createBuyer(name?: string): Promise<{ id: string }>
+  getBuyerByName(name: string): Promise<{ id: string, name: string } | null>
+  getBuyer(id: string): Promise<{ id: string, name: string } | null>
+  createBuyer(name?: string): Promise<{ id: string, name: string }>
   createOrder(input: Partial<OrderRow> & { catalog_price_paise?: number }): Promise<OrderRow>
   getOrder(id: string): Promise<OrderRow | null>
+  getLatestOrderForBuyer(buyerId: string): Promise<OrderRow | null>
   updateOrder(id: string, patch: Partial<OrderRow>): Promise<OrderRow>
   findOrderByPaymentId(paymentId: string): Promise<OrderRow | null>
   findOrderByPaymentLinkId(linkId: string): Promise<OrderRow | null>
@@ -152,6 +156,9 @@ export function createMemoryStore(): NokonStore {
       if (!normalized) return null
       return [...sellers.values()].find((s) => s.youtube_handle === normalized) ?? null
     },
+    async getSellerById(id) {
+      return sellers.get(id) ?? null
+    },
     async getItem(sellerId, itemCode) {
       return (
         [...items.values()].find((i) => i.seller_id === sellerId && i.item_code === itemCode) ?? null
@@ -160,8 +167,14 @@ export function createMemoryStore(): NokonStore {
     async getItemById(id) {
       return items.get(id) ?? null
     },
-    async createBuyer() {
-      return { id: randomUUID() }
+    async getBuyerByName(name) {
+      return null
+    },
+    async getBuyer(id) {
+      return null
+    },
+    async createBuyer(name?: string) {
+      return { id: randomUUID(), name: name ?? 'Demo buyer' }
     },
     async createOrder(input) {
       const row: OrderRow = {
@@ -192,6 +205,11 @@ export function createMemoryStore(): NokonStore {
     },
     async getOrder(id) {
       return orders.get(id) ?? null
+    },
+    async getLatestOrderForBuyer(buyerId) {
+      return [...orders.values()]
+        .filter(o => o.buyer_id === buyerId && o.status !== 'failed' && o.status !== 'expired')
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null
     },
     async updateOrder(id, patch) {
       const current = orders.get(id)
@@ -305,6 +323,14 @@ export function createSupabaseStore(client: SupabaseClient): NokonStore {
         .maybeSingle()
       return data
     },
+    async getSellerById(id) {
+      const { data } = await client
+        .from('sellers')
+        .select('id, shop_name, youtube_handle, city')
+        .eq('id', id)
+        .maybeSingle()
+      return data
+    },
     async getItem(sellerId, itemCode) {
       const { data } = await client
         .from('items')
@@ -322,8 +348,16 @@ export function createSupabaseStore(client: SupabaseClient): NokonStore {
         .maybeSingle()
       return data
     },
+    async getBuyerByName(name) {
+      const { data } = await client.from('buyers').select('id, name').eq('name', name).maybeSingle()
+      return data
+    },
+    async getBuyer(id) {
+      const { data } = await client.from('buyers').select('id, name').eq('id', id).maybeSingle()
+      return data
+    },
     async createBuyer(name) {
-      const { data, error } = await client.from('buyers').insert({ name: name ?? 'Demo buyer' }).select('id').single()
+      const { data, error } = await client.from('buyers').insert({ name: name ?? 'Demo buyer' }).select('id, name').single()
       if (error || !data) throw new Error(error?.message ?? 'buyer insert failed')
       return data
     },
@@ -350,6 +384,18 @@ export function createSupabaseStore(client: SupabaseClient): NokonStore {
     },
     async getOrder(id) {
       const { data } = await client.from('orders').select('*').eq('id', id).maybeSingle()
+      return (data as OrderRow | null) ?? null
+    },
+    async getLatestOrderForBuyer(buyerId) {
+      const { data } = await client
+        .from('orders')
+        .select('*')
+        .eq('buyer_id', buyerId)
+        .neq('status', 'failed')
+        .neq('status', 'expired')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
       return (data as OrderRow | null) ?? null
     },
     async updateOrder(id, patch) {

@@ -18,6 +18,7 @@ export type CreatePaymentLinkInput = {
   itemCode: string
   description?: string
   customerName?: string
+  sellerHandle: string
 }
 
 export async function createStandardPaymentLink(input: CreatePaymentLinkInput) {
@@ -40,8 +41,8 @@ export async function createStandardPaymentLink(input: CreatePaymentLinkInput) {
       item_code: input.itemCode,
     },
     ...(input.customerName ? { customer: { name: input.customerName } } : {}),
-    ...(env.RAZORPAY_CALLBACK_URL
-      ? { callback_url: env.RAZORPAY_CALLBACK_URL, callback_method: 'get' as const }
+    ...(env.NEXT_PUBLIC_APP_URL
+      ? { callback_url: `${env.NEXT_PUBLIC_APP_URL}/store/${input.sellerHandle}/${input.orderId}`, callback_method: 'get' as const }
       : {}),
   }
   const created = await getRazorpay().paymentLink.create(
