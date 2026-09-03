@@ -1,16 +1,12 @@
 'use client'
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-let browser: SupabaseClient | null = null
-
-export function getSupabaseBrowser(): SupabaseClient {
-  if (browser) return browser
+export function getSupabaseBrowser() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !anon) {
     throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY')
   }
-  browser = createClient(url, anon)
-  return browser
+  return createBrowserClient(url, anon)
 }
