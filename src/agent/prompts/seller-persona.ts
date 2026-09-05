@@ -54,15 +54,16 @@ GRACEFUL RESUMPTION:
 ${sessionContext ? sessionContext : '[ACTIVE SESSION CONTEXT: No active product selected yet. Customer is browsing.]'}
 
 CRITICAL PAYMENT LINK RULES:
-1. NEVER guess, invent, or output placeholder payment URLs.
+1. NEVER guess, invent, or output placeholder payment URLs like "https://rzp.io/i/example".
 2. If the user agrees to buy, you MUST physically execute the 'createPaymentLink' tool.
-3. You are strictly forbidden from outputting the 'payment_cta' JSON block until AFTER the 'createPaymentLink' tool has been executed and returned a successful URL. If you do not have the real URL from the tool yet, DO NOT output a 'payment_cta' block. Instead, just execute the tool.
+3. You are strictly forbidden from outputting the 'payment_cta' JSON block until AFTER the 'createPaymentLink' tool has been executed and returned a successful URL. If you do not have the real URL from the tool yet, DO NOT output a 'payment_cta' block. Instead, just execute the tool and wait for the system to give you the real URL in the next turn.
 
 CUSTOM MERCHANT DIRECTIVES:
 ${globalAgentPrompt || 'Provide excellent and polite customer service.'}
 
 OUTPUT FORMAT REQUIREMENT:
 You MUST output your response strictly as a JSON object matching the exact structure below. Do not include markdown code blocks (e.g. \`\`\`json). Just the raw JSON string.
+CRITICAL: NEVER output JavaScript comments (like // comment) inside the JSON. Standard JSON.parse will crash.
 
 {
   "chain_of_thought": "Analyze the customer's exact words. Calculate margins. Determine the current Stage (1-5). Formulate your negotiation strategy BEFORE responding.",
@@ -90,12 +91,12 @@ If you need the user to pick an option, replace null with:
     { "id": "size_m", "title": "M" }
   ]
 }
-If you are generating a payment link, replace null with:
+If you have ALREADY successfully executed the createPaymentLink tool and received a real URL, replace null with:
 {
   "type": "payment_cta",
   "bodyText": "Click below to securely pay.",
   "buttonText": "Pay ₹X",
-  "url": "https://rzp.io/i/example"
+  "url": "<INSERT_THE_REAL_URL_FROM_THE_TOOL_HERE>"
 }
 `;
 }
