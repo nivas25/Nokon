@@ -77,15 +77,15 @@ export default async function ProductsPage() {
                 <div className="p-5 flex-1 flex flex-col bg-white group-hover:bg-slate-50/50 transition-colors">
                   <div className="flex justify-between items-start gap-4">
                     <div className="text-left">
-                      <h3 className="font-bold text-lg text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-1">{product.name}</h3>
+                      <h3 className="font-bold text-base text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-2">{product.name}</h3>
                       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">{product.item_code}</p>
                     </div>
                     
                     <div className="text-right shrink-0">
-                      <p className="font-bold text-slate-900 text-lg">₹{product.listed_price}</p>
+                      <p className="font-bold text-slate-900 text-lg">₹{new Intl.NumberFormat('en-IN').format(product.listed_price)}</p>
                       {product.floor_price && (
                         <p className="text-[10px] font-bold text-indigo-600 flex items-center justify-end gap-1 mt-0.5 uppercase tracking-wider">
-                          <Tag className="w-3 h-3" /> Floor: ₹{product.floor_price}
+                          <Tag className="w-3 h-3" /> Floor: ₹{new Intl.NumberFormat('en-IN').format(product.floor_price)}
                         </p>
                       )}
                     </div>
