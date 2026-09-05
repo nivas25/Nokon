@@ -91,7 +91,20 @@ export async function runSellerAgent(
   const customerPhone = message.from as string;
   const messageType   = message.type  as string;
   const customerName  = value?.contacts?.[0]?.profile?.name || 'Customer';
-  const incomingMsgId = message.id as string; // used for typing indicators
+  const incomingMsgId = message.id as string; // used for deduplication
+
+  // Deduplication check
+  const { data: existingLog } = await supabase
+    .from('whatsapp_logs')
+    .select('id')
+    .eq('metadata->>wamid', incomingMsgId)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingLog) {
+    console.log(`[Runner] Duplicate webhook detected for wamid ${incomingMsgId}, dropping.`);
+    return;
+  }
 
   console.log(`[Runner] Seller: ${seller.store_name} | Customer: ${customerPhone} | Type: ${messageType}`);
 
@@ -147,7 +160,8 @@ export async function runSellerAgent(
         seller_id: seller.id,
         customer_phone: customerPhone,
         sender_type: 'customer',
-        message_content: `[System: User uploaded image containing product "${product.name}" (Code: ${product.item_code}). Size detected: ${size || 'None'}]`
+        message_content: `[System: User uploaded image containing product "${product.name}" (Code: ${product.item_code}). Size detected: ${size || 'None'}]`,
+        metadata: { wamid: incomingMsgId }
       });
 
     } catch (e) {
@@ -188,6 +202,7 @@ export async function runSellerAgent(
       customer_phone: customerPhone,
       sender_type: 'customer',
       message_content: incomingText,
+      metadata: { wamid: incomingMsgId }
     });
   }
 
