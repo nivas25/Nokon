@@ -38,7 +38,9 @@ export async function POST(req: Request) {
   console.log('razorpay webhook', { event: name, paymentId, linkId });
 
   const captured = name === 'payment.captured' || name === 'order.paid' || name === 'payment_link.paid';
-  if (!captured) {
+  const expired = name === 'payment_link.expired' || name === 'payment_link.cancelled';
+  
+  if (!captured && !expired) {
     return NextResponse.json({ ok: true, ignored: name });
   }
 
@@ -75,6 +77,43 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, idempotent: true });
   }
 
+  let activeProduct = order.product;
+  if (Array.isArray(activeProduct)) {
+    activeProduct = activeProduct[0];
+  }
+  const productName = activeProduct?.name || 'Item';
+
+  if (expired) {
+    if (order.status !== 'PENDING_PAYMENT') {
+       return NextResponse.json({ ok: true, ignored: 'order not pending' });
+    }
+
+    // 1. Update order status to CANCELLED
+    await supabase.from('orders').update({ status: 'CANCELLED' }).eq('id', order.id);
+
+    // 2. Restore stock
+    const { data: item } = await supabase.from('products').select('stock_count').eq('id', order.product_id).single();
+    if (item) {
+      await supabase.from('products').update({ stock_count: item.stock_count + 1 }).eq('id', order.product_id);
+    }
+
+    // 3. Notify customer
+    const expiryMsg = `Your payment link for the *${productName}* has expired and the item has been returned to the shelf. Let me know if you are still interested!`;
+    try {
+      await sendWhatsAppMessage(order.customer_phone, expiryMsg);
+      await supabase.from('whatsapp_logs').insert({
+        seller_id: order.seller_id,
+        customer_phone: order.customer_phone,
+        sender_type: 'agent',
+        message_content: expiryMsg
+      });
+    } catch (error) {
+      console.error('WhatsApp confirmation loop failed', error);
+    }
+
+    return NextResponse.json({ ok: true, orderId: order.id, status: 'EXPIRED' });
+  }
+
   // 2. Update the order status to PAID
   const { error: updateErr } = await supabase
     .from('orders')
@@ -91,12 +130,6 @@ export async function POST(req: Request) {
 
   // 3. Send WhatsApp confirmation message
   const amountPaid = order.total_amount;
-  
-  let activeProduct = order.product;
-  if (Array.isArray(activeProduct)) {
-    activeProduct = activeProduct[0];
-  }
-  const productName = activeProduct?.name || 'Item';
   
   const finalSellerMsg = `Payment of ₹${amountPaid} received successfully! 🎉\n\nTo process your order for the *${productName}*, please reply with your delivery details:\n\n*Name:*\n*Address:*\n*Pincode:*\n*Phone:*`;
 
