@@ -57,3 +57,41 @@ export async function downloadWhatsAppMedia(imageId: string): Promise<string> {
   const buffer = Buffer.from(arrayBuffer);
   return buffer.toString('base64');
 }
+
+export async function sendAddressRequestMessage(to: string, message: string) {
+  const url = `https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: to,
+      type: 'interactive',
+      interactive: {
+        type: 'address_message',
+        body: {
+          text: message
+        },
+        action: {
+          name: 'address_message',
+          parameters: {
+            country: 'IN'
+          }
+        }
+      }
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    console.error('❌ Failed to send WhatsApp address message:', data);
+    throw new Error(data.error?.message || 'Failed to send address request');
+  }
+
+  return data;
+}
