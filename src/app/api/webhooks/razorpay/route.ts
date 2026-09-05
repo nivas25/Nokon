@@ -46,7 +46,7 @@ export async function POST(req: Request) {
 
   if (!linkId) {
     // If there is no linkId in the payload, try to extract the order ID from notes
-    const orderId = payment?.notes?.reference_id;
+    const orderId = (payment?.notes as any)?.reference_id;
     if (!orderId) {
       console.error('No linkId or reference_id found in webhook payload');
       return NextResponse.json({ ok: true, ignored: 'no identifier' });
@@ -63,13 +63,13 @@ export async function POST(req: Request) {
   if (linkId) {
     orderQuery = orderQuery.eq('razorpay_order_id', linkId);
   } else {
-    orderQuery = orderQuery.eq('id', payment?.notes?.reference_id);
+    orderQuery = orderQuery.eq('id', (payment?.notes as any)?.reference_id);
   }
   
   const { data: order, error: orderErr } = await orderQuery.single();
 
   if (orderErr || !order) {
-    console.error('Order not found for linkId/reference_id:', linkId || payment?.notes?.reference_id);
+    console.error('Order not found for linkId/reference_id:', linkId || (payment?.notes as any)?.reference_id);
     return NextResponse.json({ error: 'order not found' }, { status: 404 });
   }
 
