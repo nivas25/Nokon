@@ -44,6 +44,7 @@ interface InteractiveAction {
 }
 
 interface AgentOutput {
+  chain_of_thought: string;
   messages: AgentMessage[];
   interactiveAction: InteractiveAction | null;
 }
@@ -311,13 +312,17 @@ async function invokeAgent(
   });
   const raw = result.text.trim();
 
-  // Strip markdown code fences if the model adds them despite instructions
-  const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
   let agentOutput: AgentOutput;
   try {
-    agentOutput = JSON.parse(cleaned) as AgentOutput;
+    const firstBrace = raw.indexOf('{');
+    const lastBrace = raw.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1) throw new Error('No JSON object found in response');
+    
+    const jsonStr = raw.substring(firstBrace, lastBrace + 1);
+    agentOutput = JSON.parse(jsonStr) as AgentOutput;
   } catch (e) {
     console.error('[Runner] Agent JSON parse error:', e);
+    console.error('[Runner] Raw output was:', raw);
     // Graceful fallback — send a plain sorry message
     const fallback = "I'm sorry, I ran into a small hiccup. Could you repeat that? 🙏";
     await dispatchStaggeredMessages(customerPhone, [{ text: fallback, delayAfterMs: 500 }]);
