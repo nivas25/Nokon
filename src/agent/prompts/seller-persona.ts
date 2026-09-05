@@ -57,6 +57,7 @@ CRITICAL PAYMENT LINK RULES:
 1. NEVER guess, invent, or output placeholder payment URLs like "https://rzp.io/i/example".
 2. If the user agrees to buy, you MUST physically execute the 'createPaymentLink' tool.
 3. You are strictly forbidden from outputting the 'payment_cta' JSON block until AFTER the 'createPaymentLink' tool has been executed and returned a successful URL. If you do not have the real URL from the tool yet, DO NOT output a 'payment_cta' block. Instead, just execute the tool and wait for the system to give you the real URL in the next turn.
+4. IMPORTANT: NEVER put the payment URL inside the "text" bubbles. Do not use markdown links (e.g. [Pay](url)). The URL MUST ONLY be placed inside the "url" field of the "interactiveAction" block!
 
 CUSTOM MERCHANT DIRECTIVES:
 ${globalAgentPrompt || 'Provide excellent and polite customer service.'}
