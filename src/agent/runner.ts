@@ -315,11 +315,25 @@ async function invokeAgent(
   let agentOutput: AgentOutput;
   try {
     const firstBrace = raw.indexOf('{');
-    const lastBrace = raw.lastIndexOf('}');
-    if (firstBrace === -1 || lastBrace === -1) throw new Error('No JSON object found in response');
+    if (firstBrace === -1) throw new Error('No JSON object found in response');
     
-    const jsonStr = raw.substring(firstBrace, lastBrace + 1);
-    agentOutput = JSON.parse(jsonStr) as AgentOutput;
+    let jsonStr = raw.substring(firstBrace);
+    let depth = 0;
+    let endIdx = -1;
+    for (let i = 0; i < jsonStr.length; i++) {
+      if (jsonStr[i] === '{') depth++;
+      else if (jsonStr[i] === '}') {
+        depth--;
+        if (depth === 0) {
+          endIdx = i;
+          break;
+        }
+      }
+    }
+    
+    if (endIdx === -1) throw new Error('Unbalanced JSON object found in response');
+    const finalJson = jsonStr.substring(0, endIdx + 1);
+    agentOutput = JSON.parse(finalJson) as AgentOutput;
   } catch (e) {
     console.error('[Runner] Agent JSON parse error:', e);
     console.error('[Runner] Raw output was:', raw);
